@@ -1,2 +1,3 @@
 __pycache__
-Server/bentoml/test*
+.ipynb_checkpoints
+bentoml/test*

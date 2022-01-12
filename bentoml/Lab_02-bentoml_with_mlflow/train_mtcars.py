@@ -18,7 +18,7 @@ client = MlflowClient()
 exp_id = client.get_experiment_by_name(exp_name).experiment_id
 
 with mlflow.start_run(experiment_id = exp_id):    
-    data = pd.read_csv(f"{basedir}/Pipeline/bentoml/data/mtcars.csv")
+    data = pd.read_csv(f"{basedir}/Week7/bentoml/data/mtcars.csv")
     data = data.drop(labels = "Unnamed: 0", axis = 1)
     
     y = "mpg"

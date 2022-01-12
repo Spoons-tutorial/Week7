@@ -20,7 +20,7 @@ exp_id = client.get_experiment_by_name(exp_name).experiment_id
 
 
 with mlflow.start_run(experiment_id = exp_id):    
-    data = pd.read_csv(f"{basedir}/Pipeline/bentoml/data/winequality-white.csv")
+    data = pd.read_csv(f"{basedir}/Week7/bentoml/data/winequality-white.csv")
 
     y = "quality"
     X_data = data.loc[:, data.keys() != y]
