@@ -6,6 +6,8 @@ class User(HttpUser):
     
     @task
     def predict_iris(self):
+        wait_time = between(1, 2)
+
         self.client.post("/", json={
                 'cyl': 6,
                 'disp': 160.0,
