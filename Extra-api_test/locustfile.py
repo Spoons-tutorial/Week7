@@ -6,13 +6,17 @@ class User(HttpUser):
     
     @task
     def predict_iris(self):
-        self.client.post("/iris", json={
-            "sepal_length": 4.8,
-            "sepal_width": 4.1,
-            "petal_length": 3.3,
-            "petal_width": 1.7,
-        }, params={
-            'model_name': "rf_clf_model_0106"
+        self.client.post("/", json={
+                'cyl': 6,
+                'disp': 160.0,
+                'hp': 110,
+                'drat': 3.90,
+                'wt': 2.620,
+                'qsec': 16.46,
+                'vs': 0,
+                'am': 1,
+                'gear': 4,
+                'carb': 4
         })
 
     def on_start(self):
