@@ -6,11 +6,11 @@
 
 ## postgres docker
 
-- `docker run --rm -P -p 127.0.0.1:5431:5432 -e POSTGRES_PASSWORD=0000 -e POSTGRES_USER=spoons --name pgtest postgres:13.4`
+- `docker run --rm -P -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=0000 -e POSTGRES_USER=spoons --name postgresql postgres:13.4`
 
 ## mlflow dashboard
 
-- `mlflow server --backend-store-uri postgresql://spoons:0000@localhost:5431/spoons --default-artifact-root $(pwd) -p 5001`
+- `mlflow server --backend-store-uri postgresql://postgres:postgres@localhost:5432/postgres --default-artifact-root $(pwd) -p 5000`
 
 ## workflow
 

@@ -1,6 +1,4 @@
-import json
-import random
-from locust import HttpUser, TaskSet, task, between
+from locust import HttpUser, task, between
 
 class User(HttpUser):
     

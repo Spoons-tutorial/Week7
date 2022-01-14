@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from app.router import iris
+from app.router import titanic
 
 app = FastAPI()
 
-app.include_router(iris.router)
+app.include_router(titanic.router)
 
 @app.get("/")
 def root():
