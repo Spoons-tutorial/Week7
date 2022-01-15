@@ -11,7 +11,7 @@ basedir = os.getenv("HOME")
 exp_name = "mtcars"
 artifact_path = "mtcars_model"
 
-mlflow.set_tracking_uri("http://localhost:8000")
+mlflow.set_tracking_uri("http://localhost:5000")
 mlflow.set_experiment(exp_name)
 
 client = MlflowClient()

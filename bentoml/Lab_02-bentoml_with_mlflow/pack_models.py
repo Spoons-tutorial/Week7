@@ -9,7 +9,7 @@ wq_exp_name = "wine_quality"
 wq_art_path = "winequal_model"
 
 
-mlflow.set_tracking_uri('http://localhost:8000')
+mlflow.set_tracking_uri('http://localhost:5000')
 client = MlflowClient()
 
 mtcars_exp_id = client.get_experiment_by_name(mt_exp_name).experiment_id
