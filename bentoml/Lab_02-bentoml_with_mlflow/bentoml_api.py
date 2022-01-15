@@ -9,7 +9,10 @@ from sklearn import preprocessing
 import xgboost as xgb
 
 
-@env(infer_pip_packages=True)
+@env(pip_packages = ["bentoml==0.13.1",
+                     "pandas==1.3.5",
+                     "scikit-learn==1.0.1",
+                     "xgboost==1.4.2"])
 @artifacts([SklearnModelArtifact("mtcars_rf"),
             XgboostModelArtifact("winequal_xgb")])
 class ModelApi(BentoService):
