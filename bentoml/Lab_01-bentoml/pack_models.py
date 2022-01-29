@@ -6,8 +6,8 @@ from bentoml_api import MtcarsAPI
 basedir = os.getenv("HOME")
 
 data = pd.read_csv(f"{basedir}/Week7/bentoml/data/mtcars.csv")
-data = data.drop(labels = 'Unnamed: 0', axis = 1)
-X_data = data.loc[:, data.keys() != 'mpg']
+data = data.drop(labels = 'Unnamed: 0', axis = 1) # 필요없는 컬럼 제거
+X_data = data.loc[:, data.keys() != 'mpg'] # target, label 분리
 y_data = data['mpg']
 
 

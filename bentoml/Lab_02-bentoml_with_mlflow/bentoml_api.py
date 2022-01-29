@@ -1,6 +1,5 @@
 from bentoml import env, artifacts, api, BentoService
 from bentoml.adapters import DataframeInput
-from bentoml.adapters.json_output import JsonOutput
 from bentoml.frameworks.sklearn import SklearnModelArtifact
 from bentoml.frameworks.xgboost import XgboostModelArtifact
 
@@ -49,7 +48,6 @@ class ModelApi(BentoService):
 
     @api(input = DataframeInput(
             http_input_example = mtcars_input_exam), 
-         output = JsonOutput(),
          api_doc = mtcars_apidoc,
          route = 'v1/mtcars',
          batch = True)
@@ -69,7 +67,6 @@ class ModelApi(BentoService):
                                 'pH': 3.36,
                                 'sulphates': 0.78,
                                 'alcohol': 13.9}]), 
-         output = JsonOutput(),
          route = 'v1/winequal',
          batch = True)
     def pred_winequal(self, df: pd.DataFrame):
