@@ -4,17 +4,19 @@ import pandas as pd
 
 if __name__ == '__main__':
     # MLflow
-    mlflow.set_tracking_uri('http://localhost:5001')
+    mlflow.set_tracking_uri('http://localhost:5000')
     mlflow.set_experiment('titanic')
     MODEL_PATH = 'titanic_model'
     METRIC = 'accuracy'
 
-    # 값 받기
+    # 호출당시 인자값을 설정할 수 있습니다.
     parser = argparse.ArgumentParser(description="Predict titanic surviver")
 
-    parser.add_argument('--Pclass', type=int)
-    parser.add_argument('--Sex', type=int)
-    parser.add_argument('--Fare', type=float)
+    parser.add_argument('--pclass', type=int, default=2, choices=range(1,4))
+    parser.add_argument('--sex', type=int, default=0, choices=range(0,2))
+    parser.add_argument('--fare', type=float, default=300.0)
+
+    args = parser.parse_args()
 
     # experiment이름으로 모든 runs를 찾습니다.
     exp = mlflow.get_experiment_by_name('titanic')
@@ -30,7 +32,9 @@ if __name__ == '__main__':
         0: 'Dead',
         1: 'Survived'
     }
-    test_x = pd.DataFrame({"Pclass": [2], "Sex": [0], "Fare": [300.0]})
+    test_x = pd.DataFrame({
+        "Pclass": args.pclass, "Sex": args.sex, "Fare": args.fare
+    }, index=[0])
 
     # 모델 uri를 바탕으로 모델을 load 해옵니다.
     best_model_uri = f'runs:/{best_run_id}/{MODEL_PATH}'
