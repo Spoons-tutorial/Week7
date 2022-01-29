@@ -8,3 +8,4 @@ redis==4.1.0
 mlflow==1.22.0
 bentoml==0.13.1
 xgboost==1.4.2
+jupyter==1.0.0
