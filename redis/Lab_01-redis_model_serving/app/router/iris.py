@@ -56,7 +56,7 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
             client.expire(REDIS_KEY, RESET_SEC)
         else:
             # redis에 해당키가 존재하지 않는 경우입니다. == 모델이 redis에 없음
-            # 모델을 기존 방식대로 load해온 뒤에 redis엥 해당모델을 저장합니다.
+            # 모델을 기존 방식대로 load해온 뒤에 redis에 해당모델을 저장합니다.
             model = load_rf_clf(model_path)
             client.set(
                 REDIS_KEY, pickle.dumps(model), datetime.timedelta(seconds=RESET_SEC)
