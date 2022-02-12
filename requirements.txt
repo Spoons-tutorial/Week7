@@ -9,3 +9,6 @@ mlflow==1.22.0
 bentoml==0.13.1
 xgboost==1.4.2
 jupyter==1.0.0
+redisai==1.2.2
+skl2onnx==1.10.4
+onnxruntime==1.10.0
