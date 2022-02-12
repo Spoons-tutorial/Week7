@@ -1,9 +1,14 @@
 import datetime
 import pickle
 
-from fastapi import APIRouter, HTTPException
+import joblib
 import numpy as np
 import redis
+import onnxruntime as rt
+from fastapi import APIRouter, HTTPException
+from redisai import Client
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 
 from app.basemodels import IrisInfo
 from app.database import schema
@@ -15,8 +20,7 @@ from app.utils import load_rf_clf
 schema.Base.metadata.create_all(bind=engine)
 # app/database/schema.py에서 정의한 테이블이 없으면 생성합니다.
 
-pool = redis.ConnectionPool(host='localhost', port=6379, db=0)
-client = redis.Redis(connection_pool=pool)
+con = Client(host='localhost', port=6379)
 
 router = APIRouter(prefix="/iris")
 
@@ -41,33 +45,28 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
             model_name, model_path = result
     except:
         raise HTTPException(status_code=404, detail="DB에 model_name이 존재하지 않습니다.")
+    
+    ### redis
+    REDIS_KEY = 'redis_caching_model'
 
     try:
-        ### redis
-        REDIS_KEY = 'redis_caching_model'
-        RESET_SEC = 100
+        onx_model = con.modelget(REDIS_KEY)
+        onx_model = onx_model['blob']
+    except redis.exceptions.ResponseError:            
+        model = load_rf_clf(model_path)
+        initial_type = [('float_input', FloatTensorType([1,4]))]
+        onx_model = convert_sklearn(model, initial_types=initial_type).SerializeToString()
+        con.modelset(REDIS_KEY, 'onnx', 'cpu', onx_model)
+    ###
 
-        model = client.get(REDIS_KEY)
+    ### onnx
+    sess = rt.InferenceSession(onx_model)
+    test = np.array([*iris_info.dict().values()]).reshape(1,-1).astype(np.float32)
+    input_name = sess.get_inputs()[0].name
+    label_name = sess.get_outputs()[0].name
+    result = sess.run([label_name], {input_name: test})[0][0]
+    ###
 
-        if model:
-            # reids에 해당 키가 존재하는 경우입니다. == 모델이 redis에 존재
-            # 모델을 load해와 deserialize하고 만료시간을 갱신합니다.
-            model = pickle.loads(model)
-            client.expire(REDIS_KEY, RESET_SEC)
-        else:
-            # redis에 해당키가 존재하지 않는 경우입니다. == 모델이 redis에 없음
-            # 모델을 기존 방식대로 load해온 뒤에 redis에 해당모델을 저장합니다.
-            model = load_rf_clf(model_path)
-            client.set(
-                REDIS_KEY, pickle.dumps(model), datetime.timedelta(seconds=RESET_SEC)
-            )
-        ###
-
-        test = np.array([*iris_info.dict().values()]).reshape(1,-1)
-        result = model.predict(test)[0]
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="경로에 파일이 존재하지 않습니다.")
-        
     return {
         "result": f'{model_name} 모델로 예측한 결과는 {iris_target_names[result]}입니다.'
     }

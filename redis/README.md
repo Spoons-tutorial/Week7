@@ -2,31 +2,35 @@
 
 - Redis 는 인메모리 데이터베이스 입니다.
 - 사용되는 커맨드는 [공식문서](https://redis.io/commands)에서 자세히 찾아보실 수 있습니다.
-- 실습에서는 model을 caching하기위해 사용되었습니다.
+- 실습에서는 model을 caching하기위해 redisai를 사용하였습니다.
   ```python
-        ### redis
-        REDIS_KEY = 'redis_caching_model'
-        RESET_SEC = 100
+  REDIS_KEY = 'redis_caching_model'
 
-        model = client.get(REDIS_KEY)
-
-        if model:
-            # reids에 해당 키가 존재하는 경우입니다. == 모델이 redis에 존재
-            # 모델을 load해와 deserialize하고 만료시간을 갱신합니다.
-            model = pickle.loads(model)
-            client.expire(REDIS_KEY, RESET_SEC)
-        else:
-            # redis에 해당키가 존재하지 않는 경우입니다. == 모델이 redis에 없음
-            # 모델을 기존 방식대로 load해온 뒤에 redis에 해당모델을 저장합니다.
-            model = load_rf_clf(model_path)
-            client.set(
-                REDIS_KEY, pickle.dumps(model), datetime.timedelta(seconds=RESET_SEC)
-            )
-        ###
+  try:
+    onx_model = con.modelget(REDIS_KEY)
+    onx_model = onx_model['blob']
+  except redis.exceptions.ResponseError:            
+    model = load_rf_clf(model_path)
+    initial_type = [('float_input', FloatTensorType([1,4]))]
+    onx_model = convert_sklearn(model, initial_types=initial_type).SerializeToString()
+    con.modelset(REDIS_KEY, 'onnx', 'cpu', onx_model)
   ```
-  - 모델캐싱 뿐만아니라 자주 요청되는 데이터에대해 응답을 캐싱해두고 모델 prediction을 거치지않고 캐싱해둔 결과를 응답으로 반환할 수 있습니다.
+  - 실습에서는 redisai를 사용하여 모델캐싱을 진행하였지만 모델캐싱 뿐만아니라 자주 요청되는 데이터에대해 redis에 응답을 캐싱해두고 모델 prediction을 거치지않고 캐싱해둔 결과를 응답으로 반환할 수 있습니다.
   - 모델을 캐싱할 때 사용된 것은 아래와 같습니다.
-    - `redis command with python`: [get](https://redis-py.readthedocs.io/en/stable/commands.html#redis.commands.cluster.RedisClusterCommands.get), [set](https://redis-py.readthedocs.io/en/stable/commands.html#redis.commands.core.CoreCommands.set), [expire](https://redis-py.readthedocs.io/en/stable/commands.html#redis.commands.cluster.RedisClusterCommands.expire)이 사용되었습니다.
-    - `REDIS_KEY`: 해당 Key로 value를 저장하거나 조회할 때 사용됩니다.
-    - `pickle.dumps(model)`: [redis에서 지원되는 data type](https://redis.io/topics/data-types-intro)으로 변경하기위해 dumps를 통해 model을 바꾸어줍니다.
-    - `RESET_SEC`: expire 시간을 설정하기 위해 사용되었습니다. 시간이 지나면 키가 자동적으로 삭제됩니다.
+    - `redisai command with python`: [modelget](https://redisai-py.readthedocs.io/en/latest/api.html#redisai.Client.modelget), [modelset](https://redisai-py.readthedocs.io/en/latest/api.html#redisai.Client.modelset) 이 사용되었습니다.
+    - `REDIS_KEY`: 해당 Key로 model을 저장하거나 조회할 때 사용됩니다.
+    - `convert_sklearn`: 공식문서에 따르면 `modelset`에서 허용되는 backend값은 TF, TORCH, TFLITE, ONNX 입니다. sklearn은 지원되지 않기때문에 onnx형태로 바꾸기 위해 사용되었습니다.
+
+- onnx로 모델을 저장하였기 때문에 inference에 기존처럼 predict를 사용할 수 없습니다.
+  ```python
+    sess = rt.InferenceSession(onx_model)
+    test = np.array([*iris_info.dict().values()]).reshape(1,-1).astype(np.float32)
+    input_name = sess.get_inputs()[0].name
+    label_name = sess.get_outputs()[0].name
+    result = sess.run([label_name], {input_name: test})[0][0]
+  ```
+  - onnxruntime `InferenceSession`의 첫번째 인자로 path_or_bytes가 가능합니다.
+    - 실습코드에서는 onnx model을 그대로 넣어주었지만 onnx모델 경로를 적어주어도 됩니다.
+  - `label_name`과 `input_name`은 string type으로 입력하시면 됩니다.
+  - `run`: predict와 동일하게 inference를 수행하는 method입니다.
+  
