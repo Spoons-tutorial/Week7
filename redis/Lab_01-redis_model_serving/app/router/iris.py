@@ -4,9 +4,8 @@ import pickle
 import joblib
 import numpy as np
 import redis
-import onnxruntime as rt
+import redisai as rai
 from fastapi import APIRouter, HTTPException
-from redisai import Client
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
@@ -16,11 +15,10 @@ from app.database.db import engine
 from app.database.query import SELECT_MODEL
 from app.utils import load_rf_clf
 
-
 schema.Base.metadata.create_all(bind=engine)
 # app/database/schema.py에서 정의한 테이블이 없으면 생성합니다.
 
-con = Client(host='localhost', port=6379)
+redisai_client = rai.Client(host="localhost", port=6379)
 
 router = APIRouter(prefix="/iris")
 
@@ -49,23 +47,34 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
     ### redis
     REDIS_KEY = 'redis_caching_model'
 
-    try:
-        onx_model = con.modelget(REDIS_KEY)
-        onx_model = onx_model['blob']
-    except redis.exceptions.ResponseError:            
-        model = load_rf_clf(model_path)
-        initial_type = [('float_input', FloatTensorType([1,4]))]
-        onx_model = convert_sklearn(model, initial_types=initial_type).SerializeToString()
-        con.modelset(REDIS_KEY, 'onnx', 'cpu', onx_model)
-    ###
+    # 데이터를 redisai에서 활용할 수 있도록 set하여 줍니다.
+    test = np.array([[*iris_info.dict().values()]], dtype=np.float32)
+    redisai_client.tensorset('input_tensor', test)
 
-    ### onnx
-    sess = rt.InferenceSession(onx_model)
-    test = np.array([*iris_info.dict().values()]).reshape(1,-1).astype(np.float32)
-    input_name = sess.get_inputs()[0].name
-    label_name = sess.get_outputs()[0].name
-    result = sess.run([label_name], {input_name: test})[0][0]
-    ###
+    # 모델이 존재하는지 체크합니다.
+    is_model_exist = redisai_client.exists(REDIS_KEY)
+
+    # 모델이 존재하지 않는 경우
+    if not is_model_exist:
+        loaded_model = load_rf_clf(model_path)
+
+        initial_type = [("input_tensor", FloatTensorType([None, 4]))]
+
+        onx_model = convert_sklearn(loaded_model, initial_types=initial_type)
+
+        redisai_client.modelstore(
+            key=REDIS_KEY, 
+            backend='onnx', 
+            device='cpu', 
+            data=onx_model.SerializeToString()
+        )
+
+    # redisai modelrun method로 inference를 수행합니다.
+    redisai_client.modelrun(key=REDIS_KEY,
+                        inputs=['input_tensor'],
+                        outputs=['output_tensor_class', 'output_tensor_prob'])
+    
+    result = int(redisai_client.tensorget('output_tensor_class'))
 
     return {
         "result": f'{model_name} 모델로 예측한 결과는 {iris_target_names[result]}입니다.'
