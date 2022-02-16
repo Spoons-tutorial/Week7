@@ -60,7 +60,9 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
 
         initial_type = [("input_tensor", FloatTensorType([None, 4]))]
 
-        onx_model = convert_sklearn(loaded_model, initial_types=initial_type)
+        onx_model = convert_sklearn(loaded_model, 
+                                    initial_types=initial_type,
+                                    options={'zipmap': False})
 
         redisai_client.modelstore(
             key=REDIS_KEY, 
@@ -75,9 +77,7 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
                         outputs=['output_tensor_class', 'output_tensor_prob'])
     
     result = int(redisai_client.tensorget('output_tensor_class'))
-
+    prob = redisai_client.tensorget('output_tensor_prob')[0][result]
     return {
-        "result": f'{model_name} 모델로 예측한 결과는 {iris_target_names[result]}입니다.'
+        "result": f'{model_name} 모델로 예측한 결과는 {iris_target_names[result]}({prob*100:.02f}%)입니다.'
     }
-
-
