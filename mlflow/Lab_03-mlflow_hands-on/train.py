@@ -66,4 +66,8 @@ if __name__ == '__main__':
     mlflow.log_artifact("train.csv")
 
     mlflow.log_metric(METRIC, score)
-    mlflow.sklearn.log_model(model, MODEL_PATH)
+    mlflow.sklearn.log_model(
+        model,
+        MODEL_PATH,
+        registered_model_name='sk-learn-rf-clf-model'
+    )

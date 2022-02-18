@@ -4,6 +4,7 @@
 - 사용되는 커맨드는 [공식문서](https://redis.io/commands)에서 자세히 찾아보실 수 있습니다.
 - 실습에서는 model을 caching하기위해 redisai를 사용하였습니다.
   ```python
+
   is_model_exist = redisai_client.exists(REDIS_KEY)
 
   if not is_model_exist:
@@ -38,4 +39,3 @@
   - `inputs`: redisai_client.tensorset()메서드를 이용하여 미리 저장해둔 데이터의 이름입니다.
   - `outputs`: 출력값을 저장할 키입니다. 키값이 이미 존재하면 새로운 값으로 덮어씁니다.
 
-  
