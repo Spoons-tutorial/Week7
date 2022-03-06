@@ -51,7 +51,7 @@ with mlflow.start_run(experiment_id = exp_id):
     # register model
     client = MlflowClient()
     client.transition_model_version_stage(
-        name=MODEL_NAME
+        name=MODEL_NAME,
         version=MODEL_VERSION,
         stage=MODEL_STAGE
     )                        
