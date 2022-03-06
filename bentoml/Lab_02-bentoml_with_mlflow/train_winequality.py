@@ -59,7 +59,7 @@ with mlflow.start_run(experiment_id = exp_id):
 
     # log model
     mlflow.xgboost.log_model(
-        sk_model=rdf,
+        sk_model=xgb_clf,
         artifact_path=artifact_path,
         registered_model_name=MODEL_NAME
     )
