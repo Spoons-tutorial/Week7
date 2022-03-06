@@ -52,5 +52,22 @@ with mlflow.start_run(experiment_id = exp_id):
     mlflow.log_params({"gamma":params["gamma"],
                        "max_depth":params["max_depth"]})
     mlflow.log_metric(key = "accuracy", value = accuracy)
-    mlflow.xgboost.log_model(xgb_model=xgb_clf,
-                             artifact_path=artifact_path)
+
+    MODEL_VERSION = 1
+    MODEL_STAGE = 'Production'
+    MODEL_NAME = 'xgb-clf-wine-model'
+
+    # log model
+    mlflow.xgboost.log_model(
+        xgb_model=xgb_clf,
+        artifact_path=artifact_path,
+        registered_model_name=MODEL_NAME
+    )
+
+    # register model
+    client = MlflowClient()
+    client.transition_model_version_stage(
+        name=MODEL_NAME,
+        version=MODEL_VERSION,
+        stage=MODEL_STAGE
+    )

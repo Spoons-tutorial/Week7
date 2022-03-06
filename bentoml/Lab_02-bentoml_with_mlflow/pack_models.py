@@ -3,25 +3,18 @@ from bentoml_api import ModelApi
 import mlflow
 from mlflow.tracking import MlflowClient
 
-mt_exp_name = "mtcars"
-mt_art_path = "mtcars_model"
-wq_exp_name = "wine_quality"
-wq_art_path = "winequal_model"
-
+MODEL_STAGE = 'Production'
+MODEL_NAME1 = 'sk-learn-rf-reg-mtcars-model'
+MODEL_NAME2 = 'xgb-clf-wine-model'
 
 mlflow.set_tracking_uri('http://localhost:5000')
 client = MlflowClient()
 
-mtcars_exp_id = client.get_experiment_by_name(mt_exp_name).experiment_id
-mtcars_run_id = mlflow.search_runs([mtcars_exp_id])['run_id'][0]
+MODEL_URI1 = f"models:/{MODEL_NAME1}/{MODEL_STAGE}"
+MODEL_URI2 = f"models:/{MODEL_NAME2}/{MODEL_STAGE}"
 
-rdf = mlflow.sklearn.load_model(f"runs:/{mtcars_run_id}/{mt_art_path}")
-
-
-winequal_exp_id = client.get_experiment_by_name(wq_exp_name).experiment_id
-winequal_run_id = mlflow.search_runs([winequal_exp_id])['run_id'][0]
-
-xgb = mlflow.xgboost.load_model(f"runs:/{winequal_run_id}/{wq_art_path}")
+rdf = mlflow.sklearn.load_model(MODEL_URI1)
+xgb = mlflow.xgboost.load_model(MODEL_URI2)
 
 bento_service = ModelApi()
 bento_service.pack("mtcars_rf", rdf)
