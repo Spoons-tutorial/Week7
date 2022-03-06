@@ -14,7 +14,7 @@ MODEL_URI1 = f"models:/{MODEL_NAME1}/{MODEL_STAGE}"
 MODEL_URI2 = f"models:/{MODEL_NAME2}/{MODEL_STAGE}"
 
 rdf = mlflow.sklearn.load_model(MODEL_URI1)
-xgb = mlflow.sklearn.load_model(MODEL_URI2)
+xgb = mlflow.xgboost.load_model(MODEL_URI2)
 
 bento_service = ModelApi()
 bento_service.pack("mtcars_rf", rdf)
