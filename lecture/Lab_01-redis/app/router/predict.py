@@ -20,7 +20,7 @@ def predict(iris_info: IrisInfo):
         output_tensor = predict_redisai("random_forest_rai", input_tensor)
     except Exception as e:
         return HTTPException(
-            detail=f"model is not loaded: {str(e)}",
+            detail=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     result = {"result": output_tensor}
@@ -42,7 +42,7 @@ def predict(iris_info: IrisInfo, background_tasks: BackgroundTasks):
         output_tensor = model.predict(input_tensor).tolist()
     except Exception as e:
         return HTTPException(
-            detail=f"model is not loaded: {str(e)}",
+            detail=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     result = {"result": output_tensor}

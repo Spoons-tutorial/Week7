@@ -12,16 +12,19 @@ router = APIRouter(prefix="/iris")
 @router.post("/predict")
 def predict(iris_info: IrisInfo):
     model = None
+
     try:
         model = load_rf_clf("iris_rf_model")
 
+        input_tensor = np.array([[*iris_info.dict().values()]])
+
+        output_tensor = model.predict(input_tensor).tolist()
     except Exception as e:
         raise HTTPException(
-            detail=f"model is not loaded: {str(e)}",
+            detail=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    input_data = np.array([[*iris_info.dict().values()]])
-    result = {"result": model.predict(input_data).tolist()}
+    result = {"result": output_tensor}
 
     return JSONResponse(content=result)
