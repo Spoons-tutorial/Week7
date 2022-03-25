@@ -1,6 +1,5 @@
 import pickle
 import joblib
-from sklearn.ensemble import RandomForestClassifier
 
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
