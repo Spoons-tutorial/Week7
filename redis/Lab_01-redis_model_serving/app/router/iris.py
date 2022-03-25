@@ -25,10 +25,8 @@ router = APIRouter(prefix="/iris")
 @router.post("/")
 def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> str:
     """iris_info를 입력받아 model prediction 결과를 반환합니다.
-
     Args:
         iris_info (IrisInfo): sepal_length, sepal_width, petal_length, petal_width 정보
-
     Returns:
         str: model prediction결과가 포함된 문자열
     """
