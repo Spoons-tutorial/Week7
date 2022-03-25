@@ -15,13 +15,14 @@ from app.utils import load_rf_clf
 schema.Base.metadata.create_all(bind=engine)
 # app/database/schema.py에서 정의한 테이블이 없으면 생성합니다.
 
-pool = redis.ConnectionPool(host='localhost', port=6379, db=0)
+pool = redis.ConnectionPool(host="localhost", port=6379, db=0)
 client = redis.Redis(connection_pool=pool)
 
 router = APIRouter(prefix="/iris")
 
+
 @router.post("/")
-def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> str:
+def predict_iris(iris_info: IrisInfo, model_name: str = "rf_clf_model_0106") -> str:
     """iris_info를 입력받아 model prediction 결과를 반환합니다.
 
     Args:
@@ -30,11 +31,7 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
     Returns:
         str: model prediction결과가 포함된 문자열
     """
-    iris_target_names = {
-        0: "setosa",
-        1: "versicolor",
-        2: "virginica"
-    }
+    iris_target_names = {0: "setosa", 1: "versicolor", 2: "virginica"}
     try:
         with engine.connect() as conn:
             result = conn.execute(SELECT_MODEL.format(model_name)).fetchone()
@@ -44,7 +41,7 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
 
     try:
         ### redis
-        REDIS_KEY = 'redis_caching_model'
+        REDIS_KEY = "redis_caching_model"
         RESET_SEC = 100
 
         model = client.get(REDIS_KEY)
@@ -59,17 +56,13 @@ def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> s
             # 모델을 기존 방식대로 load해온 뒤에 redis에 해당모델을 저장합니다.
             model = load_rf_clf(model_path)
             client.set(
-                REDIS_KEY, pickle.dumps(model), datetime.timedelta(seconds=RESET_SEC)
+                REDIS_KEY, pickle.dumps(model))
             )
         ###
 
-        test = np.array([*iris_info.dict().values()]).reshape(1,-1)
+        test = np.array([*iris_info.dict().values()]).reshape(1, -1)
         result = model.predict(test)[0]
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="경로에 파일이 존재하지 않습니다.")
-        
-    return {
-        "result": f'{model_name} 모델로 예측한 결과는 {iris_target_names[result]}입니다.'
-    }
 
-
+    return {"result": f"{model_name} 모델로 예측한 결과는 {iris_target_names[result]}입니다."}

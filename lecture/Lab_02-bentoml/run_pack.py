@@ -2,13 +2,13 @@ from bentoml_service import IrisAPI, IrisAPIMlflow
 from utils import load_rf_clf
 
 # 일반적인 BentoML Service 생성 프로세스
-model = load_rf_clf('assets/random_forest.pkl')
+model = load_rf_clf("assets/random_forest.pkl")
 
 # BentoML Service 객체 생성
 bento_service = IrisAPI()
 
 # Service에 모델 Pack
-bento_service.pack('iris_rf', model)
+bento_service.pack("iris_rf", model)
 
 # Service 저장
 bento_service.save()

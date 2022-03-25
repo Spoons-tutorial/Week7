@@ -16,10 +16,11 @@ def check_key(model_name):
     return client.exists(model_name)
 
 
-def load_model(model_path):
+def load_rf_clf(model_path):
     model = joblib.load(model_path)
 
     return model
+
 
 def get_model_redis(model_name):
     if client.exists(model_name):
@@ -27,6 +28,7 @@ def get_model_redis(model_name):
         return pickle.loads(client.get(model_name))
     else:
         return None
+
 
 def set_model_redis(model, model_name):
     client.set(model_name, pickle.dumps(model))
@@ -36,7 +38,7 @@ def set_model_redis(model, model_name):
 def set_model_rai(model_path: str, model_name):
     is_set = False
     try:
-        model = load_model(model_path=model_path)
+        model = load_rf_clf(model_path=model_path)
 
         initial_type = [("input", FloatTensorType([None, 4]))]
         onx_model = convert_sklearn(model, initial_types=initial_type)

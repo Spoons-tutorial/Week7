@@ -6,7 +6,8 @@ from bentoml.exceptions import MissingDependencyException
 
 DEFAULT_PICKLE_EXTENSION = ".pkl"
 
-mlflow.set_tracking_uri('http://localhost:5001')
+mlflow.set_tracking_uri("http://localhost:5001")
+
 
 def _import_joblib_module():
     try:
@@ -27,9 +28,9 @@ def _import_joblib_module():
 
     return joblib
 
+
 # https://github.com/bentoml/BentoML/blob/0.13-LTS/bentoml/frameworks/sklearn.py
 class MlflowArtifact(BentoServiceArtifact):
-
     def __init__(self, name, model_name):
         super(MlflowArtifact, self).__init__(name)
         self._model_name = model_name
@@ -48,7 +49,9 @@ class MlflowArtifact(BentoServiceArtifact):
         model_file_path = self._model_file_path(path)
 
         if not os.path.exists(model_file_path):
-            self._model = mlflow.sklearn.load_model(f'models:/{self._model_name}/Production')
+            self._model = mlflow.sklearn.load_model(
+                f"models:/{self._model_name}/Production"
+            )
             self.save(path)
             print(model_file_path)
         else:
@@ -65,4 +68,4 @@ class MlflowArtifact(BentoServiceArtifact):
 
     def set_dependencies(self, env: BentoServiceEnv):
         if env._infer_pip_packages:
-            env.add_pip_packages(['scikit-learn'])
+            env.add_pip_packages(["scikit-learn"])
