@@ -1,9 +1,13 @@
 import datetime
 import pickle
 
-from fastapi import APIRouter, HTTPException
+import joblib
 import numpy as np
 import redis
+import redisai as rai
+from fastapi import APIRouter, HTTPException
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 
 from app.basemodels import IrisInfo
 from app.database import schema
@@ -11,58 +15,69 @@ from app.database.db import engine
 from app.database.query import SELECT_MODEL
 from app.utils import load_rf_clf
 
-
 schema.Base.metadata.create_all(bind=engine)
 # app/database/schema.py에서 정의한 테이블이 없으면 생성합니다.
 
-pool = redis.ConnectionPool(host="localhost", port=6379, db=0)
-client = redis.Redis(connection_pool=pool)
+redisai_client = rai.Client(host="localhost", port=6379)
 
 router = APIRouter(prefix="/iris")
 
-
 @router.post("/")
-def predict_iris(iris_info: IrisInfo, model_name: str = "rf_clf_model_0106") -> str:
+def predict_iris(iris_info: IrisInfo, model_name:str = 'rf_clf_model_0106') -> str:
     """iris_info를 입력받아 model prediction 결과를 반환합니다.
-
     Args:
         iris_info (IrisInfo): sepal_length, sepal_width, petal_length, petal_width 정보
-
     Returns:
         str: model prediction결과가 포함된 문자열
     """
-    iris_target_names = {0: "setosa", 1: "versicolor", 2: "virginica"}
+    iris_target_names = {
+        0: "setosa",
+        1: "versicolor",
+        2: "virginica"
+    }
     try:
         with engine.connect() as conn:
             result = conn.execute(SELECT_MODEL.format(model_name)).fetchone()
             model_name, model_path = result
     except:
         raise HTTPException(status_code=404, detail="DB에 model_name이 존재하지 않습니다.")
+    
+    ### redis
+    REDIS_KEY = 'redis_caching_model'
 
-    try:
-        ### redis
-        REDIS_KEY = "redis_caching_model"
-        RESET_SEC = 100
+    # 데이터를 redisai에서 활용할 수 있도록 set하여 줍니다.
+    test = np.array([[*iris_info.dict().values()]], dtype=np.float32)
+    redisai_client.tensorset('input_tensor', test)
 
-        model = client.get(REDIS_KEY)
+    # 모델이 존재하는지 체크합니다.
+    is_model_exist = redisai_client.exists(REDIS_KEY)
 
-        if model:
-            # reids에 해당 키가 존재하는 경우입니다. == 모델이 redis에 존재
-            # 모델을 load해와 deserialize하고 만료시간을 갱신합니다.
-            model = pickle.loads(model)
-            client.expire(REDIS_KEY, RESET_SEC)
-        else:
-            # redis에 해당키가 존재하지 않는 경우입니다. == 모델이 redis에 없음
-            # 모델을 기존 방식대로 load해온 뒤에 redis에 해당모델을 저장합니다.
-            model = load_rf_clf(model_path)
-            client.set(
-                REDIS_KEY, pickle.dumps(model))
-            )
-        ###
+    # 모델이 존재하지 않는 경우
+    if not is_model_exist:
+        loaded_model = load_rf_clf(model_path)
 
-        test = np.array([*iris_info.dict().values()]).reshape(1, -1)
-        result = model.predict(test)[0]
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="경로에 파일이 존재하지 않습니다.")
+        initial_type = [("input_tensor", FloatTensorType([None, 4]))]
 
-    return {"result": f"{model_name} 모델로 예측한 결과는 {iris_target_names[result]}입니다."}
+
+        onx_model = convert_sklearn(loaded_model, 
+                                    initial_types=initial_type,
+                                    options={'zipmap': False})
+
+        redisai_client.modelstore(
+            key=REDIS_KEY, 
+            backend='onnx', 
+            device='cpu', 
+            data=onx_model.SerializeToString()
+        )
+
+    # redisai modelrun method로 inference를 수행합니다.
+    redisai_client.modelrun(key=REDIS_KEY,
+                        inputs=['input_tensor'],
+                        outputs=['output_tensor_class', 'output_tensor_prob'])
+    
+    result = int(redisai_client.tensorget('output_tensor_class'))
+    prob = redisai_client.tensorget('output_tensor_prob')[0][result]
+    
+    return {
+        "result": f'{model_name} 모델로 예측한 결과는 {iris_target_names[result]}({prob*100:.02f}%)입니다.'
+    }

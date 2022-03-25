@@ -36,5 +36,22 @@ with mlflow.start_run(experiment_id = exp_id):
 
     mlflow.log_params(params)
     mlflow.log_metric(key = "MSE", value = result)
-    mlflow.sklearn.log_model(sk_model=rdf,
-                             artifact_path=artifact_path)
+
+    MODEL_VERSION = 1
+    MODEL_STAGE = 'Production'
+    MODEL_NAME = 'sk-learn-rf-reg-mtcars-model'
+
+    # log model
+    mlflow.sklearn.log_model(
+        sk_model=rdf,
+        artifact_path=artifact_path,
+        registered_model_name=MODEL_NAME
+    )
+
+    # register model
+    client = MlflowClient()
+    client.transition_model_version_stage(
+        name=MODEL_NAME,
+        version=MODEL_VERSION,
+        stage=MODEL_STAGE
+    )                        
